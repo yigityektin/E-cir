@@ -1,0 +1,25 @@
+node_modules/
+artifacts/
+cache/
+typechain-types/
+coverage/
+coverage.json
+
+# env
+.env
+.env.local
+.env.*.local
+
+# build
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+
+# hardhat
+ignition/deployments/

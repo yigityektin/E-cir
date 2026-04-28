@@ -1,0 +1,31 @@
+{
+  "name": "agentry-web3",
+  "version": "1.0.0",
+  "description": "Person 2: Web3 / ENS / Uniswap v4 Hook / Reward Contracts",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "coverage": "hardhat coverage",
+    "setup:local": "hardhat run scripts/setup.ts --network hardhat",
+    "setup:sepolia": "hardhat run scripts/setup.ts --network sepolia",
+    "deploy:local": "hardhat run scripts/deploy.ts --network hardhat",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "register:local": "hardhat run scripts/registerAgents.ts --network hardhat",
+    "register:sepolia": "hardhat run scripts/registerAgents.ts --network sepolia",
+    "typechain": "hardhat typechain",
+    "node": "hardhat node"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "@uniswap/v4-core": "^1.0.1",
+    "@uniswap/v4-periphery": "^1.0.0",
+    "dotenv": "^16.4.5"
+  }
+}
