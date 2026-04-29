@@ -1,24 +1,45 @@
-# E-cir AI Agent Marketplace Backend
+# E-cir — AI Agent Marketplace
 
-This branch adds a Python mock backend for a performance-based AI agent marketplace.
+A performance-based AI agent marketplace where multiple AI models compete on a task, a council of judges scores each output, and the winner receives an on-chain reward via Ethereum smart contracts.
 
-It includes:
+## Architecture
 
-- task intake, classification, and routing agents
-- fast, balanced, and high-quality model agents
-- mock 0G storage records
-- council evaluation agents
-- final Web3 integration JSON output
-- runtime trace logging for each pipeline step
-
-## Run
-
-```bash
-pip install -r requirements.txt
-python scripts/run_pipeline.py
+```
+User Task
+   │
+   ▼
+Task Intake → Classifier → Router
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+       FastModelAgent  BalancedModelAgent  HighQualityModelAgent
+       (Groq / Llama)  (DeepSeek V3)       (Claude / Anthropic)
+              │                │                │
+              └────────────────┴────────────────┘
+                               │
+                          0G Storage
+                               │
+                     Council Evaluation
+              ┌──────────┬─────┴──────┬──────────┐
+              ▼          ▼            ▼          ▼
+         Correctness  Reasoning  Efficiency  Safety + Adversarial
+              │
+         Final Aggregator (scores → winner)
+              │
+     Smart Contracts (Hardhat / Sepolia)
+     AgentRegistry · ReputationTracker · RewardDistributor
+              │
+       React Dashboard (Vite)
 ```
 
-Generated files:
+## Stack
 
-- `outputs/final_result.json`
-- `outputs/runtime_trace.json`
+| Layer | Technology |
+|---|---|
+| Fast agent | Groq — Llama 3.3 70B |
+| Balanced agent | DeepSeek V3 |
+| High-quality agent | Claude (Anthropic) |
+| Council judges | Venice.ai — Llama 3.3 70B (privacy-first) |
+| Storage | 0G Storage (mocked if key not set) |
+| Contracts | Solidity + Hardhat + TypeChain |
+| Frontend | React + TypeScript + Vite + ethers.js |
