@@ -1,0 +1,48 @@
+{
+  "taskId": "task_001",
+  "taskType": "coding",
+  "agents": [
+    {
+      "agentId": "balanced_model_agent_v1",
+      "agentEns": "balanced.agent.project.eth",
+      "agentWallet": "0x2222222222222222222222222222222222222222",
+      "outputURI": "0g://mock/output_balanced_001",
+      "evaluationURI": "0g://mock/eval_balanced_model_agent_v1",
+      "outputHash": "0xcd35e56d0ea4eaa66dd9632f2a98cf32b6921a20c6012ed0c503c2e389259b44",
+      "evaluationHash": "0x2e8ac5dc2a10d1edf1cd9e7600f3f5ccf43d9fd47949f920fe6297cdd6abe9a2",
+      "finalScore": 77,
+      "latencyMs": 2200,
+      "costEstimate": 0.009
+    },
+    {
+      "agentId": "fast_model_agent_v1",
+      "agentEns": "fast.agent.project.eth",
+      "agentWallet": "0x1111111111111111111111111111111111111111",
+      "outputURI": "0g://mock/output_fast_001",
+      "evaluationURI": "0g://mock/eval_fast_model_agent_v1",
+      "outputHash": "0x82d762b0a86ffdb52d1c94975c468d3cdd83c95a0617cd1faf6f6b7486bd08db",
+      "evaluationHash": "0xa4576406705a105eb2aece95a683628ee7178ad0c615ac0d229f3691cb5d0f21",
+      "finalScore": 78,
+      "latencyMs": 1200,
+      "costEstimate": 0.007
+    },
+    {
+      "agentId": "high_quality_model_agent_v1",
+      "agentEns": "highquality.agent.project.eth",
+      "agentWallet": "0x3333333333333333333333333333333333333333",
+      "outputURI": "0g://mock/output_high_quality_001",
+      "evaluationURI": "0g://mock/eval_high_quality_model_agent_v1",
+      "outputHash": "0x961a140e31fc17ddfccfd4b950de7a5feaee802c802a659856232ac74ace2c9e",
+      "evaluationHash": "0x2ed24a521604b77726c9ebc25b7203d912aabd2e36675d93df2d6401db16d424",
+      "finalScore": 88,
+      "latencyMs": 4200,
+      "costEstimate": 0.02
+    }
+  ],
+  "winner": {
+    "agentId": "high_quality_model_agent_v1",
+    "agentWallet": "0x3333333333333333333333333333333333333333",
+    "finalScore": 88
+  },
+  "totalReward": "1000000000000000000"
+}

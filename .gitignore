@@ -23,3 +23,9 @@ Thumbs.db
 
 # hardhat
 ignition/deployments/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
