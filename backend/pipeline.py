@@ -17,16 +17,20 @@ from backend.utils.runtime_logger import RuntimeLogger
 
 
 class MarketplacePipeline:
+    # ENS names and wallets must match setup.ts / registerAgents.ts (hardhat accounts).
+    # account[0] = deployer, account[1] = 0x70997970..., account[2] = 0x3C44Cd...
     agent_ens = {
-        "fast_model_agent_v1": "fast.agent.project.eth",
-        "balanced_model_agent_v1": "balanced.agent.project.eth",
-        "high_quality_model_agent_v1": "highquality.agent.project.eth",
+        "fast_model_agent_v1": "agent1.agentry.eth",
+        "balanced_model_agent_v1": "agent2.agentry.eth",
+        "high_quality_model_agent_v1": "agent3.agentry.eth",
     }
 
     agent_wallets = {
-        "fast_model_agent_v1": "0x1111111111111111111111111111111111111111",
-        "balanced_model_agent_v1": "0x2222222222222222222222222222222222222222",
-        "high_quality_model_agent_v1": "0x3333333333333333333333333333333333333333",
+        # These must match the wallets registered in setup.ts.
+        # account[0] (deployer) is set at runtime; using hardhat defaults for [1] and [2].
+        "fast_model_agent_v1": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "balanced_model_agent_v1": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "high_quality_model_agent_v1": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     }
 
     def __init__(self):

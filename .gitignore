@@ -9,6 +9,7 @@ coverage.json
 .env
 .env.local
 .env.*.local
+.env.example
 
 # build
 dist/

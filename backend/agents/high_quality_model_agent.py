@@ -1,32 +1,47 @@
-from backend.schemas import ModelOutput
+import time
+
+from backend.schemas import ModelOutput, TaskPayload
+from backend.utils.claude_client import estimate_cost, get_client
 from backend.utils.hashing import compute_hash
+
+_MODEL = "claude-opus-4-7"
+_SYSTEM = (
+    "You are a high-quality AI agent. Provide the most accurate, comprehensive, and carefully "
+    "reasoned responses possible. Consider edge cases, potential issues, and best practices. "
+    "Prioritize correctness and thoroughness."
+)
 
 
 class HighQualityModelAgent:
     agent_id = "high_quality_model_agent_v1"
     agent_label = "High-Quality Model Agent"
 
-    def execute(self, task_payload) -> ModelOutput:
-        output_text = (
-            "def validate_ethereum_address(address):\n"
-            "    if not isinstance(address, str):\n"
-            "        return {\"valid\": False, \"reason\": \"input must be a string\"}\n"
-            "    normalized = address.strip()\n"
-            "    if len(normalized) != 42 or not normalized.startswith('0x'):\n"
-            "        return {\"valid\": False, \"reason\": \"invalid Ethereum address format\"}\n"
-            "    checksum = normalized[2:]\n"
-            "    if checksum.lower() == checksum or checksum.upper() == checksum:\n"
-            "        return {\"valid\": True, \"reason\": \"address is valid but not checksummed\"}\n"
-            "    return {\"valid\": True, \"reason\": \"address appears checksummed\"}\n"
+    def execute(self, task_payload: TaskPayload) -> ModelOutput:
+        client = get_client()
+        start = time.monotonic()
+
+        response = client.messages.create(
+            model=_MODEL,
+            max_tokens=4096,
+            thinking={"type": "adaptive"},
+            output_config={"effort": "high"},
+            system=_SYSTEM,
+            messages=[{"role": "user", "content": task_payload.task_text}],
         )
+
+        latency_ms = int((time.monotonic() - start) * 1000)
+        output_text = next(b.text for b in response.content if b.type == "text")
+        cost = estimate_cost(_MODEL, response.usage.input_tokens, response.usage.output_tokens)
+
         return ModelOutput(
             task_id=task_payload.task_id,
             agent_id=self.agent_id,
             agent_label=self.agent_label,
+            task_text=task_payload.task_text,
             output_text=output_text,
             confidence=0.94,
-            latency_ms=4200,
-            cost_estimate=0.020,
-            output_uri="0g://mock/output_high_quality_001",
+            latency_ms=latency_ms,
+            cost_estimate=cost,
+            output_uri=f"0g://mock/output_high_quality_{task_payload.task_id}",
             output_hash=compute_hash(output_text),
         )

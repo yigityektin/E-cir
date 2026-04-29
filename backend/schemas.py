@@ -28,6 +28,7 @@ class ModelOutput(BaseModel):
     task_id: str
     agent_id: str
     agent_label: str
+    task_text: str
     output_text: str
     confidence: float
     latency_ms: int
