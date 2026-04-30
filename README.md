@@ -5,45 +5,45 @@ A performance-based AI agent marketplace where multiple AI models compete on a t
 ## Architecture
 
 ```
-User Task
+User Task  (React frontend — predefined or custom)
    │
    ▼
-Task Intake → Classifier (Grok / xAI) → Router
+FastAPI /run  →  Task Intake → Classifier (Grok / xAI) → Router
+                                                              │
+              ┌───────────────────────────────────────────────┼───────────────────────────────────────────────┐
+              ▼                                               ▼                                               ▼
+       FastModelAgent                               BalancedModelAgent                           HighQualityModelAgent
+       grok-3-mini (xAI)                            deepseek-chat (DeepSeek)                     claude-opus-4-7 (Anthropic)
+              │                                               │                                               │
+              └───────────────────────────────────────────────┴───────────────────────────────────────────────┘
+                                                              │
+                                                         0G Storage
+                                                (real testnet — merkle root URI)
+                                                              │
+                                                    Council Evaluation
+                                       ┌────────────┬─────────┴──────────┬────────────┐
+                                       ▼            ▼                     ▼            ▼
+                                 Correctness   Reasoning           Safety        Adversarial
+                                                           (Venice.ai — Llama 3.3 70B)
+                                                              │
+                                                       Efficiency Judge
+                                                      (latency + cost)
+                                                              │
+                                                      Final Aggregator
+                                                     (weighted scoring)
+                                                              │
+                                            ┌─────────────────┴─────────────────┐
+                                            ▼                                     ▼
+                                  Smart Contracts                          React Dashboard
+                             AgentRegistry (ENS)                          task selector · agent cards
+                             ReputationTracker                            tier · AIPERF balance
+                             RewardDistributor  ◄── auto submitScores     hook fee · task settlement
+                             RewardToken (AIPERF)
                                             │
-              ┌─────────────────────────────┼─────────────────────────────┐
-              ▼                             ▼                             ▼
-       FastModelAgent               BalancedModelAgent           HighQualityModelAgent
-       grok-3-mini (xAI)            deepseek-chat (DeepSeek)     claude-opus-4-7 (Anthropic)
-              │                             │                             │
-              └─────────────────────────────┴─────────────────────────────┘
-                                            │
-                                       0G Storage
-                              (real testnet — merkle root URI)
-                                            │
-                                  Council Evaluation
-                     ┌────────────┬─────────┴──────────┬────────────┐
-                     ▼            ▼                     ▼            ▼
-               Correctness   Reasoning           Safety        Adversarial
-                                         (Venice.ai — Llama 3.3 70B)
-                                            │
-                                     Efficiency Judge
-                                    (latency + cost)
-                                            │
-                                    Final Aggregator
-                                   (weighted scoring)
-                                            │
-                              ┌─────────────┴─────────────┐
-                              ▼                             ▼
-                    Smart Contracts                  React Dashboard
-               AgentRegistry (ENS)                  agent cards · scores
-               ReputationTracker                    tier · AIPERF balance
-               RewardDistributor                    hook fee · task panel
-               RewardToken (AIPERF)
-                              │
-                    Uniswap v4 PoolManager
-                    + ReputationHook (CREATE2)
-                    ETH/AIPERF pool — dynamic fee
-                    PLATINUM 0.05% → BRONZE 0.30%
+                                  Uniswap v4 PoolManager
+                                  + ReputationHook (CREATE2)
+                                  ETH/AIPERF pool — dynamic fee
+                                  PLATINUM 0.05% → BRONZE 0.30%
 ```
 
 ## Stack
@@ -57,6 +57,7 @@ Task Intake → Classifier (Grok / xAI) → Router
 | Council judges (×4) | Venice.ai | `llama-3.3-70b` (privacy-first) |
 | Efficiency judge | Local | latency + cost formula |
 | Storage | 0G Testnet | merkle root URI via on-chain TX |
+| Backend API | FastAPI + uvicorn | `/run` endpoint, auto score submission |
 | Contracts | Solidity 0.8.26 + Hardhat | EVM local / Sepolia |
 | Uniswap v4 | PoolManager + ReputationHook | CREATE2 salt mining |
 | Token | ERC-20 AIPERF | minted on task completion |
@@ -73,7 +74,10 @@ Task Intake → Classifier (Grok / xAI) → Router
 3. **Agents registered** — agent1–3 mapped to ENS names + model types
 4. **Pipeline** — Classifier → Router → 3 AI agents → 0G storage upload → 5 council judges → winner selected
 5. **On-chain settlement** — scores submitted to RewardDistributor, AIPERF minted proportionally, reputation updated
-6. **Dashboard** — React frontend at `http://localhost:5173`
+6. **API server** — FastAPI starts at `http://localhost:8001`
+7. **Dashboard** — React frontend at `http://localhost:5173`
+
+After setup, use the dashboard to run any task interactively. The `/run` endpoint calls the full pipeline and automatically submits scores on-chain — no manual steps required.
 
 ## Uniswap v4 Hook
 
@@ -138,11 +142,13 @@ Or step by step:
 ./node_modules/.bin/hardhat run scripts/setup.ts --network localhost
 python3 scripts/run_pipeline.py
 ./node_modules/.bin/hardhat run scripts/submitScores.ts --network localhost
+uvicorn backend.server:app --host 0.0.0.0 --port 8001
 
 # Terminal 3
-cp .env frontend/.env
 cd frontend && npm run dev
 ```
+
+> The frontend reads all env vars from the root `.env` via `envDir` — no `frontend/.env` needed.
 
 ### Deploy to Sepolia
 
@@ -156,11 +162,11 @@ npm run submit:sepolia
 ```
 ├── backend/
 │   ├── agents/           # AI model agents + storage
-│   │   ├── fast_model_agent.py       # Grok / xAI
-│   │   ├── balanced_model_agent.py   # DeepSeek V3
+│   │   ├── fast_model_agent.py          # Grok / xAI
+│   │   ├── balanced_model_agent.py      # DeepSeek V3
 │   │   ├── high_quality_model_agent.py  # Claude Opus 4.7
-│   │   ├── classifier.py             # Grok — task classification
-│   │   ├── storage_agent.py          # 0G testnet upload
+│   │   ├── classifier.py                # Grok — task classification
+│   │   ├── storage_agent.py             # 0G testnet upload
 │   │   └── router.py
 │   ├── council/          # Evaluation judges (Venice.ai)
 │   │   ├── correctness_judge.py
@@ -169,6 +175,7 @@ npm run submit:sepolia
 │   │   ├── adversarial_critic.py
 │   │   ├── efficiency_judge.py
 │   │   └── final_aggregator.py
+│   ├── server.py         # FastAPI server — /health, /run, auto score submission
 │   ├── pipeline.py       # Orchestrates full run
 │   ├── schemas.py        # Pydantic models
 │   └── utils/
@@ -195,8 +202,13 @@ npm run submit:sepolia
 │   └── src/
 │       ├── App.tsx
 │       ├── contracts.ts
+│       ├── tasks.ts               # Predefined tasks (Erdős, crypto, algorithms)
 │       ├── hooks/
 │       └── components/
+│           ├── TaskSelector.tsx   # Task picker + custom input + run button
+│           ├── AgentCard.tsx
+│           ├── TaskPanel.tsx
+│           └── StatusBar.tsx
 ├── run_demo.sh           # End-to-end demo script
 └── hardhat.config.ts
 ```
