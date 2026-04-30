@@ -1,5 +1,5 @@
 import type { AgentData } from "../hooks/useAgents";
-import { TIER_COLORS } from "../contracts";
+import { TIER_COLORS, MODEL_PROVIDER } from "../contracts";
 
 interface Props {
   agent: AgentData;
@@ -9,6 +9,7 @@ interface Props {
 export function AgentCard({ agent, isWinner }: Props) {
   const tierColor = TIER_COLORS[agent.tier] ?? "#888";
   const short = (addr: string) => addr.slice(0, 6) + "…" + addr.slice(-4);
+  const provider = MODEL_PROVIDER[agent.modelType] ?? agent.modelType;
 
   return (
     <div style={{
@@ -29,7 +30,13 @@ export function AgentCard({ agent, isWinner }: Props) {
         </div>
       )}
 
-      <div style={{ marginBottom: 4, fontSize: 13, color: "#888" }}>{agent.modelType}</div>
+      {/* Provider label above ENS name */}
+      <div style={{ marginBottom: 2, fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: 0.8 }}>
+        {provider}
+      </div>
+      <div style={{ marginBottom: 2, fontSize: 13, color: "#7a7aaa", fontFamily: "monospace" }}>
+        {agent.modelType}
+      </div>
       <div style={{ fontSize: 17, fontWeight: 700, color: "#e0e0ff", marginBottom: 2 }}>
         {agent.ensName}
       </div>
@@ -52,7 +59,7 @@ export function AgentCard({ agent, isWinner }: Props) {
           {agent.tier}
         </span>
         <span style={{ fontSize: 12, color: "#aaa" }}>
-          Swap fee: <strong style={{ color: "#e0e0ff" }}>{agent.swapFee}</strong>
+          Hook fee: <strong style={{ color: "#e0e0ff" }}>{agent.swapFee}</strong>
         </span>
       </div>
     </div>

@@ -71,16 +71,20 @@ async function main() {
   await txDist.wait();
   console.log("Rewards distributed and reputation updated.");
 
-  // 4. Print final state
+  // 4. Print final state (best-effort — read calls may lag on local node)
   console.log("\n=== Task settlement complete ===");
-  const [rewardTotal, finalized, count] = await distributor.getTask(taskId);
-  console.log(`Task ${taskId}: finalized=${finalized}, pool=${ethers.formatEther(rewardTotal)} AIPERF, participants=${count}`);
+  try {
+    const [rewardTotal, finalized, count] = await distributor.getTask(taskId);
+    console.log(`Task ${taskId}: finalized=${finalized}, pool=${ethers.formatEther(rewardTotal)} AIPERF, participants=${count}`);
 
-  const [participants, scores] = await distributor.getTaskScores(taskId);
-  console.log("\nAgent scores on-chain:");
-  for (let i = 0; i < participants.length; i++) {
-    const agent = agents.find((a) => a.agentWallet.toLowerCase() === participants[i].toLowerCase());
-    console.log(`  ${agent?.agentEns ?? participants[i]}  score=${scores[i]}`);
+    const [participants, scores] = await distributor.getTaskScores(taskId);
+    console.log("\nAgent scores on-chain:");
+    for (let i = 0; i < participants.length; i++) {
+      const agent = agents.find((a) => a.agentWallet.toLowerCase() === participants[i].toLowerCase());
+      console.log(`  ${agent?.agentEns ?? participants[i]}  score=${scores[i]}`);
+    }
+  } catch {
+    console.log("(on-chain state read skipped — distribution already confirmed above)");
   }
 
   console.log(`\nWinner: ${result.winner.agentEns ?? result.winner.agentId}  (score=${result.winner.finalScore})`);

@@ -5,14 +5,15 @@ typechain-types/
 coverage/
 coverage.json
 
-# env
+# env — keep .env.example (template, no secrets)
 .env
 .env.local
 .env.*.local
-.env.example
+.env.bak
 
 # build
 dist/
+frontend/dist/
 
 # OS
 .DS_Store
@@ -30,3 +31,9 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# pipeline outputs (generated at runtime)
+outputs/
+
+# Claude Code internal memory
+.claude/

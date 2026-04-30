@@ -2,10 +2,10 @@ import time
 
 from backend.schemas import ModelOutput, TaskPayload
 from backend.utils.hashing import compute_hash
-from backend.utils.providers import GROQ_MODEL, estimate_cost_oai, get_groq_client
+from backend.utils.providers import GROK_MODEL, estimate_cost_oai, get_grok_client
 
 _SYSTEM = (
-    "You are a fast, efficient AI agent powered by Llama. "
+    "You are a fast, efficient AI agent powered by Grok. "
     "Provide concise, accurate responses. Prioritize correctness and clarity. "
     "Keep answers focused and avoid unnecessary elaboration."
 )
@@ -13,14 +13,14 @@ _SYSTEM = (
 
 class FastModelAgent:
     agent_id = "fast_model_agent_v1"
-    agent_label = "Fast Model Agent (Llama / Groq)"
+    agent_label = "Fast Model Agent (Grok / xAI)"
 
     def execute(self, task_payload: TaskPayload) -> ModelOutput:
-        client = get_groq_client()
+        client = get_grok_client()
         start = time.monotonic()
 
         response = client.chat.completions.create(
-            model=GROQ_MODEL,
+            model=GROK_MODEL,
             max_tokens=1024,
             messages=[
                 {"role": "system", "content": _SYSTEM},
@@ -31,7 +31,7 @@ class FastModelAgent:
         latency_ms = int((time.monotonic() - start) * 1000)
         output_text = response.choices[0].message.content or ""
         cost = estimate_cost_oai(
-            GROQ_MODEL,
+            GROK_MODEL,
             response.usage.prompt_tokens,
             response.usage.completion_tokens,
         )

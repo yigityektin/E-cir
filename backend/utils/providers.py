@@ -3,16 +3,16 @@ from openai import OpenAI
 
 # ── Model identifiers ─────────────────────────────────────────────────────────
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROK_MODEL = "grok-3-mini"
 DEEPSEEK_MODEL = "deepseek-chat"
 VENICE_MODEL = "llama-3.3-70b"
 
 # ── Pricing (USD per 1M tokens) ───────────────────────────────────────────────
 
 _PRICING = {
-    GROQ_MODEL:    {"input": 0.59,  "output": 0.79},
+    GROK_MODEL:     {"input": 0.30,  "output": 0.50},
     DEEPSEEK_MODEL: {"input": 0.27,  "output": 1.10},
-    VENICE_MODEL:  {"input": 1.00,  "output": 2.00},
+    VENICE_MODEL:   {"input": 1.00,  "output": 2.00},
 }
 
 
@@ -23,10 +23,10 @@ def estimate_cost_oai(model: str, prompt_tokens: int, completion_tokens: int) ->
 
 # ── Client factories ──────────────────────────────────────────────────────────
 
-def get_groq_client() -> OpenAI:
+def get_grok_client() -> OpenAI:
     return OpenAI(
-        base_url="https://api.groq.com/openai/v1",
-        api_key=os.environ["GROQ_API_KEY"],
+        base_url="https://api.x.ai/v1",
+        api_key=os.environ["XAI_API_KEY"],
     )
 
 

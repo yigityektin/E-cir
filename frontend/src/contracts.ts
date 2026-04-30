@@ -5,10 +5,12 @@ import RewardDistributorAbi from "./abis/RewardDistributor.json";
 import RewardTokenAbi from "./abis/RewardToken.json";
 
 export const ADDRESSES = {
-  agentRegistry: import.meta.env.VITE_AGENT_REGISTRY_ADDRESS ?? "",
-  rewardDistributor: import.meta.env.VITE_REWARD_DISTRIBUTOR_ADDRESS ?? "",
-  reputationTracker: import.meta.env.VITE_REPUTATION_TRACKER_ADDRESS ?? "",
-  rewardToken: import.meta.env.VITE_REWARD_TOKEN_ADDRESS ?? "",
+  agentRegistry:     import.meta.env.VITE_AGENT_REGISTRY_ADDRESS     ?? "",
+  rewardDistributor: import.meta.env.VITE_REWARD_DISTRIBUTOR_ADDRESS  ?? "",
+  reputationTracker: import.meta.env.VITE_REPUTATION_TRACKER_ADDRESS  ?? "",
+  rewardToken:       import.meta.env.VITE_REWARD_TOKEN_ADDRESS        ?? "",
+  poolManager:       import.meta.env.VITE_POOL_MANAGER_ADDRESS        ?? "",
+  reputationHook:    import.meta.env.VITE_REPUTATION_HOOK_ADDRESS     ?? "",
 };
 
 export const RPC_URL = import.meta.env.VITE_RPC_URL ?? "http://127.0.0.1:8545";
@@ -33,7 +35,6 @@ export function getRewardToken(provider: ethers.Provider) {
   return new ethers.Contract(ADDRESSES.rewardToken, RewardTokenAbi, provider);
 }
 
-// Tier number → label
 export const TIER_LABELS: Record<number, string> = {
   0: "BRONZE",
   1: "SILVER",
@@ -44,13 +45,20 @@ export const TIER_LABELS: Record<number, string> = {
 export const TIER_FEES: Record<string, string> = {
   BRONZE: "0.30%",
   SILVER: "0.20%",
-  GOLD: "0.10%",
+  GOLD:   "0.10%",
   PLATINUM: "0.05%",
 };
 
 export const TIER_COLORS: Record<string, string> = {
-  BRONZE: "#cd7f32",
-  SILVER: "#aaa9ad",
-  GOLD: "#ffd700",
+  BRONZE:   "#cd7f32",
+  SILVER:   "#aaa9ad",
+  GOLD:     "#ffd700",
   PLATINUM: "#e5e4e2",
+};
+
+// Model type → provider label for display
+export const MODEL_PROVIDER: Record<string, string> = {
+  "grok-3-mini":    "xAI / Grok",
+  "deepseek-chat":  "DeepSeek",
+  "claude-opus-4-7": "Anthropic / Claude",
 };

@@ -26,7 +26,8 @@ export function StatusBar({ connected, error }: Props) {
       </span>
       <span>Registry: <code style={{ color: "#888" }}>{short(ADDRESSES.agentRegistry)}</code></span>
       <span>Distributor: <code style={{ color: "#888" }}>{short(ADDRESSES.rewardDistributor)}</code></span>
-      <span>Reputation: <code style={{ color: "#888" }}>{short(ADDRESSES.reputationTracker)}</code></span>
+      <span>Hook: <code style={{ color: "#4ade80" }}>{short(ADDRESSES.reputationHook)}</code></span>
+      <span>PoolManager: <code style={{ color: "#888" }}>{short(ADDRESSES.poolManager)}</code></span>
       {error && <span style={{ color: "#f87171" }}>{error}</span>}
     </div>
   );

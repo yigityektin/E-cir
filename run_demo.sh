@@ -20,42 +20,77 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ── 0. Verify prerequisites ──────────────────────────────────────────────────
+# ── 0. Prerequisites ─────────────────────────────────────────────────────────
 step "Checking prerequisites"
 command -v python3 >/dev/null || { echo -e "${RED}python3 not found${NC}"; exit 1; }
-command -v node >/dev/null    || { echo -e "${RED}node not found${NC}"; exit 1; }
+command -v node    >/dev/null || { echo -e "${RED}node not found${NC}"; exit 1; }
 [[ -f .env ]] || { warn ".env not found — copying .env.example"; cp .env.example .env; }
+
+# Load .env into the current shell so bash can read API keys
+set -a
+# shellcheck disable=SC1091
+source .env
+set +a
+
 ok "Prerequisites OK"
 
-# ── 1. Start Hardhat node (background) ──────────────────────────────────────
+# ── 1. Hardhat node ──────────────────────────────────────────────────────────
 if [[ "$SKIP_NODE" == false ]]; then
   step "Starting Hardhat local node"
+
+  # Kill any existing process on port 8545 to ensure fresh state
+  EXISTING_PID=$(lsof -ti tcp:8545 2>/dev/null || true)
+  if [[ -n "$EXISTING_PID" ]]; then
+    warn "Killing existing process on port 8545 (PID $EXISTING_PID)"
+    kill "$EXISTING_PID" 2>/dev/null || true
+    sleep 1
+  fi
+
   ./node_modules/.bin/hardhat node > /tmp/hardhat.log 2>&1 &
   HARDHAT_PID=$!
   echo "Hardhat PID: $HARDHAT_PID"
-  sleep 3
+
+  # Wait until the node is accepting connections (up to 30s)
+  for i in $(seq 1 30); do
+    if curl -sf -X POST http://127.0.0.1:8545 \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+        > /dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+
+  if ! curl -sf -X POST http://127.0.0.1:8545 \
+      -H "Content-Type: application/json" \
+      -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+      > /dev/null 2>&1; then
+    echo -e "${RED}Hardhat node failed to start. Check /tmp/hardhat.log${NC}"
+    exit 1
+  fi
+
   ok "Hardhat node running (log: /tmp/hardhat.log)"
 fi
 
-# ── 2. Deploy contracts + register agents ───────────────────────────────────
+# ── 2. Deploy contracts + register agents ────────────────────────────────────
 step "Deploying contracts and registering agents"
-SETUP_OUT=$(./node_modules/.bin/hardhat run scripts/setup.ts --network hardhat 2>&1)
+SETUP_OUT=$(./node_modules/.bin/hardhat run scripts/setup.ts --network localhost 2>&1)
 echo "$SETUP_OUT"
 
-# Extract deployed addresses — match only lines where address (0x...) is last token
 parse_addr() { echo "$SETUP_OUT" | grep "$1" | grep -oE '0x[0-9a-fA-F]{40}' | head -1; }
 REWARD_TOKEN=$(parse_addr "RewardToken:")
 REPUTATION_TRACKER=$(parse_addr "ReputationTracker:")
 AGENT_REGISTRY=$(parse_addr "AgentRegistry:")
 REWARD_DISTRIBUTOR=$(parse_addr "RewardDistributor:")
+POOL_MANAGER=$(parse_addr "PoolManager:")
+REPUTATION_HOOK=$(parse_addr "ReputationHook:")
 
 if [[ -z "$REWARD_DISTRIBUTOR" ]]; then
-  echo -e "${RED}Could not parse contract addresses from setup output. Aborting.${NC}"
-  kill $HARDHAT_PID 2>/dev/null || true
+  echo -e "${RED}Could not parse contract addresses. Aborting.${NC}"
+  kill "$HARDHAT_PID" 2>/dev/null || true
   exit 1
 fi
 
-# Write addresses to .env
 update_env() {
   local key=$1 val=$2
   if grep -q "^${key}=" .env 2>/dev/null; then
@@ -65,19 +100,17 @@ update_env() {
   fi
 }
 
-update_env "REWARD_TOKEN_ADDRESS" "$REWARD_TOKEN"
+update_env "REWARD_TOKEN_ADDRESS"     "$REWARD_TOKEN"
 update_env "REPUTATION_TRACKER_ADDRESS" "$REPUTATION_TRACKER"
-update_env "AGENT_REGISTRY_ADDRESS" "$AGENT_REGISTRY"
+update_env "AGENT_REGISTRY_ADDRESS"   "$AGENT_REGISTRY"
 update_env "REWARD_DISTRIBUTOR_ADDRESS" "$REWARD_DISTRIBUTOR"
-
-# Also update VITE_ vars for frontend
-update_env "VITE_REWARD_TOKEN_ADDRESS" "$REWARD_TOKEN"
-update_env "VITE_REPUTATION_TRACKER_ADDRESS" "$REPUTATION_TRACKER"
-update_env "VITE_AGENT_REGISTRY_ADDRESS" "$AGENT_REGISTRY"
-update_env "VITE_REWARD_DISTRIBUTOR_ADDRESS" "$REWARD_DISTRIBUTOR"
+update_env "VITE_REWARD_TOKEN_ADDRESS"        "$REWARD_TOKEN"
+update_env "VITE_REPUTATION_TRACKER_ADDRESS"  "$REPUTATION_TRACKER"
+update_env "VITE_AGENT_REGISTRY_ADDRESS"      "$AGENT_REGISTRY"
+update_env "VITE_REWARD_DISTRIBUTOR_ADDRESS"  "$REWARD_DISTRIBUTOR"
+update_env "VITE_POOL_MANAGER_ADDRESS"        "$POOL_MANAGER"
+update_env "VITE_REPUTATION_HOOK_ADDRESS"     "$REPUTATION_HOOK"
 update_env "VITE_RPC_URL" "http://127.0.0.1:8545"
-
-# Copy .env to frontend for Vite
 cp .env frontend/.env
 
 ok "Contracts deployed and agents registered"
@@ -86,19 +119,24 @@ echo "  ReputationTracker: $REPUTATION_TRACKER"
 echo "  AgentRegistry:     $AGENT_REGISTRY"
 echo "  RewardDistributor: $REWARD_DISTRIBUTOR"
 
-# ── 3. Run backend pipeline ──────────────────────────────────────────────────
+# ── 3. Backend pipeline ───────────────────────────────────────────────────────
 step "Running AI agent pipeline"
-[[ -z "${ANTHROPIC_API_KEY:-}" ]] && { echo -e "${RED}ANTHROPIC_API_KEY is not set in .env — required for real Claude calls${NC}"; exit 1; }
-TASK_TEXT="$TASK_TEXT" .venv/bin/python scripts/run_pipeline.py 2>/dev/null || \
-  TASK_TEXT="$TASK_TEXT" python3 scripts/run_pipeline.py
+
+# Re-source .env to pick up freshly written contract addresses
+set -a; source .env; set +a
+
+PYTHON=python3
+[[ -x .venv/bin/python ]] && PYTHON=.venv/bin/python
+
+TASK_TEXT="$TASK_TEXT" "$PYTHON" scripts/run_pipeline.py
 ok "Pipeline complete — outputs/final_result.json written"
 
-# ── 4. Submit scores to contracts ────────────────────────────────────────────
+# ── 4. Submit scores to contracts ─────────────────────────────────────────────
 step "Submitting scores to RewardDistributor"
-./node_modules/.bin/hardhat run scripts/submitScores.ts --network hardhat
+./node_modules/.bin/hardhat run scripts/submitScores.ts --network localhost
 ok "Scores submitted, rewards distributed, reputation updated"
 
-# ── 5. Start frontend ────────────────────────────────────────────────────────
+# ── 5. Frontend ───────────────────────────────────────────────────────────────
 step "Starting React dashboard"
 echo -e "${GREEN}Dashboard: http://localhost:5173${NC}"
 echo "(Press Ctrl+C to stop)"
