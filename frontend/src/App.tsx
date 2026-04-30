@@ -5,6 +5,7 @@ import { useTask } from "./hooks/useTask";
 import { AgentCard } from "./components/AgentCard";
 import { TaskPanel } from "./components/TaskPanel";
 import { StatusBar } from "./components/StatusBar";
+import { TaskSelector } from "./components/TaskSelector";
 
 export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -16,13 +17,24 @@ export default function App() {
   const { agents, loading: agentsLoading, error: agentsError } = useAgents(refreshKey);
   const { task, loading: taskLoading } = useTask(taskId, refreshKey);
 
+  const chainError = agentsError
+    ? agentsError.includes("network") || agentsError.includes("fetch") || agentsError.includes("connect")
+      ? "Blockchain node unavailable — run ./run_demo.sh first"
+      : agentsError
+    : null;
+
   useEffect(() => {
     const addressesSet = Object.values(ADDRESSES).every(Boolean);
     if (!addressesSet) { setConnected(false); return; }
+    getProvider().getNetwork().then(() => setConnected(true)).catch(() => setConnected(false));
+  }, [refreshKey]);
 
-    const provider = getProvider();
-    provider.getNetwork().then(() => setConnected(true)).catch(() => setConnected(false));
-  }, []);
+  // When pipeline finishes, update the taskId to the new result and refresh
+  function handlePipelineResult(result: unknown) {
+    const r = result as { taskId?: string };
+    if (r?.taskId) setTaskId(r.taskId);
+    refresh();
+  }
 
   const winner = task
     ? agents.find((a) => {
@@ -61,34 +73,39 @@ export default function App() {
         </button>
       </div>
 
-      <StatusBar connected={connected} error={agentsError} />
+      <StatusBar connected={connected} error={chainError} />
 
       <div style={{ padding: "32px", maxWidth: 1200, margin: "0 auto" }}>
 
+        {/* Task runner — top of page */}
+        <section style={{ marginBottom: 40 }}>
+          <h2 style={{ margin: "0 0 20px", fontSize: 16, color: "#888", fontWeight: 500, textTransform: "uppercase", letterSpacing: 1 }}>
+            Select Task
+          </h2>
+          <TaskSelector onResult={handlePipelineResult} />
+        </section>
+
+        {/* Agent cards */}
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ margin: "0 0 20px", fontSize: 16, color: "#888", fontWeight: 500, textTransform: "uppercase", letterSpacing: 1 }}>
             Registered Agents
           </h2>
 
           {agentsLoading && <div style={{ color: "#555" }}>Loading agents…</div>}
-
           {!agentsLoading && agents.length === 0 && !agentsError && (
             <div style={{ color: "#555", fontSize: 14 }}>
-              No agents registered. Run <code style={{ color: "#888" }}>npm run setup:local</code>.
+              No agents registered. Run <code style={{ color: "#888" }}>./run_demo.sh</code>.
             </div>
           )}
 
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
             {agents.map((agent) => (
-              <AgentCard
-                key={agent.wallet}
-                agent={agent}
-                isWinner={winner?.wallet === agent.wallet}
-              />
+              <AgentCard key={agent.wallet} agent={agent} isWinner={winner?.wallet === agent.wallet} />
             ))}
           </div>
         </section>
 
+        {/* Uniswap v4 hook fee legend */}
         {agents.length > 0 && (
           <section style={{ marginBottom: 40 }}>
             <h2 style={{ margin: "0 0 16px", fontSize: 16, color: "#888", fontWeight: 500, textTransform: "uppercase", letterSpacing: 1 }}>
@@ -97,9 +114,9 @@ export default function App() {
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               {[
                 { tier: "PLATINUM", fee: "0.05%", threshold: "avg ≥ 90" },
-                { tier: "GOLD", fee: "0.10%", threshold: "avg ≥ 70" },
-                { tier: "SILVER", fee: "0.20%", threshold: "avg ≥ 50" },
-                { tier: "BRONZE", fee: "0.30%", threshold: "avg < 50" },
+                { tier: "GOLD",     fee: "0.10%", threshold: "avg ≥ 70" },
+                { tier: "SILVER",   fee: "0.20%", threshold: "avg ≥ 50" },
+                { tier: "BRONZE",   fee: "0.30%", threshold: "avg < 50" },
               ].map(({ tier, fee, threshold }) => {
                 const colors: Record<string, string> = { PLATINUM: "#e5e4e2", GOLD: "#ffd700", SILVER: "#aaa9ad", BRONZE: "#cd7f32" };
                 return (
@@ -117,6 +134,7 @@ export default function App() {
           </section>
         )}
 
+        {/* Task settlement panel */}
         <section>
           <h2 style={{ margin: "0 0 20px", fontSize: 16, color: "#888", fontWeight: 500, textTransform: "uppercase", letterSpacing: 1 }}>
             Task Settlement

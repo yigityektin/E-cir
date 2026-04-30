@@ -111,7 +111,8 @@ update_env "VITE_REWARD_DISTRIBUTOR_ADDRESS"  "$REWARD_DISTRIBUTOR"
 update_env "VITE_POOL_MANAGER_ADDRESS"        "$POOL_MANAGER"
 update_env "VITE_REPUTATION_HOOK_ADDRESS"     "$REPUTATION_HOOK"
 update_env "VITE_RPC_URL" "http://127.0.0.1:8545"
-cp .env frontend/.env
+update_env "VITE_API_URL" "http://localhost:8000"
+# No cp needed — vite.config.ts reads envDir from project root
 
 ok "Contracts deployed and agents registered"
 echo "  RewardToken:       $REWARD_TOKEN"
@@ -136,8 +137,20 @@ step "Submitting scores to RewardDistributor"
 ./node_modules/.bin/hardhat run scripts/submitScores.ts --network localhost
 ok "Scores submitted, rewards distributed, reputation updated"
 
-# ── 5. Frontend ───────────────────────────────────────────────────────────────
+# ── 5. Backend API server ─────────────────────────────────────────────────────
+step "Starting backend API server"
+PYTHON=python3
+[[ -x .venv/bin/python ]] && PYTHON=.venv/bin/python
+
+"$PYTHON" -m uvicorn backend.server:app --host 0.0.0.0 --port 8001 &
+API_PID=$!
+echo "API PID: $API_PID"
+sleep 2
+ok "Backend API running at http://localhost:8001"
+
+# ── 6. Frontend ───────────────────────────────────────────────────────────────
 step "Starting React dashboard"
 echo -e "${GREEN}Dashboard: http://localhost:5173${NC}"
+echo -e "${GREEN}API:       http://localhost:8000${NC}"
 echo "(Press Ctrl+C to stop)"
 cd frontend && npm run dev

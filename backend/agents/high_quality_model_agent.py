@@ -30,7 +30,12 @@ class HighQualityModelAgent:
         )
 
         latency_ms = int((time.monotonic() - start) * 1000)
-        output_text = next(b.text for b in response.content if b.type == "text")
+        # Opus 4.7 with adaptive thinking may return only thinking blocks —
+        # use list comprehension + default to avoid StopIteration in async context
+        text_blocks = [b.text for b in response.content if b.type == "text"]
+        output_text = text_blocks[0] if text_blocks else "".join(
+            getattr(b, "thinking", "") for b in response.content
+        )
         cost = estimate_cost(_MODEL, response.usage.input_tokens, response.usage.output_tokens)
 
         return ModelOutput(
