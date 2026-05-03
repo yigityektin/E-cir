@@ -84,6 +84,7 @@ AGENT_REGISTRY=$(parse_addr "AgentRegistry:")
 REWARD_DISTRIBUTOR=$(parse_addr "RewardDistributor:")
 POOL_MANAGER=$(parse_addr "PoolManager:")
 REPUTATION_HOOK=$(parse_addr "ReputationHook:")
+ENS_REGISTRY=$(parse_addr "ENSRegistry:")
 
 if [[ -z "$REWARD_DISTRIBUTOR" ]]; then
   echo -e "${RED}Could not parse contract addresses. Aborting.${NC}"
@@ -112,6 +113,7 @@ update_env "VITE_POOL_MANAGER_ADDRESS"        "$POOL_MANAGER"
 update_env "VITE_REPUTATION_HOOK_ADDRESS"     "$REPUTATION_HOOK"
 update_env "VITE_RPC_URL" "http://127.0.0.1:8545"
 update_env "VITE_API_URL" "http://localhost:8000"
+update_env "VITE_ENS_REGISTRY_ADDRESS" "$ENS_REGISTRY"
 # No cp needed — vite.config.ts reads envDir from project root
 
 ok "Contracts deployed and agents registered"

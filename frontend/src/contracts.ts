@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers, EnsPlugin, Network } from "ethers";
 import AgentRegistryAbi from "./abis/AgentRegistry.json";
 import ReputationTrackerAbi from "./abis/ReputationTracker.json";
 import RewardDistributorAbi from "./abis/RewardDistributor.json";
@@ -11,11 +11,19 @@ export const ADDRESSES = {
   rewardToken:       import.meta.env.VITE_REWARD_TOKEN_ADDRESS        ?? "",
   poolManager:       import.meta.env.VITE_POOL_MANAGER_ADDRESS        ?? "",
   reputationHook:    import.meta.env.VITE_REPUTATION_HOOK_ADDRESS     ?? "",
+  ensRegistry:       import.meta.env.VITE_ENS_REGISTRY_ADDRESS        ?? "",
 };
 
 export const RPC_URL = import.meta.env.VITE_RPC_URL ?? "http://127.0.0.1:8545";
 
+// Hardhat local chainId = 31337. Attach EnsPlugin on the Network so
+// provider.resolveName() uses our deployed ENSRegistry instead of mainnet.
 export function getProvider() {
+  if (ADDRESSES.ensRegistry) {
+    const network = Network.from(31337n);
+    network.attachPlugin(new EnsPlugin(ADDRESSES.ensRegistry, 31337));
+    return new ethers.JsonRpcProvider(RPC_URL, network, { staticNetwork: true });
+  }
   return new ethers.JsonRpcProvider(RPC_URL);
 }
 

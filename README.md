@@ -188,6 +188,9 @@ npm run submit:sepolia
 │   ├── RewardDistributor.sol
 │   ├── RewardToken.sol
 │   ├── Create2Deployer.sol
+│   ├── ens/
+│   │   ├── ENSRegistry.sol    # EIP-137 registry deployed locally
+│   │   └── AddrResolver.sol   # addr(bytes32) resolver
 │   ├── hooks/
 │   │   └── ReputationHook.sol
 │   └── interfaces/

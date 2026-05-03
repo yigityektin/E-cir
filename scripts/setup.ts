@@ -8,21 +8,21 @@ dotenv.config();
 // ── Agent definitions — must match actual AI providers used in backend ────────
 const AGENTS = [
   {
-    ensName: "agent1.agentry.eth",
+    ensName: "agent1.agenttry.eth",
     wallet: "",                                              // set to deployer below
     modelType: "grok-3-mini",
     specialization: "fast-coding",
     metadataURI: "0g://metadata/agent1",
   },
   {
-    ensName: "agent2.agentry.eth",
+    ensName: "agent2.agenttry.eth",
     wallet: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",   // hardhat account[1]
     modelType: "deepseek-chat",
     specialization: "reasoning",
     metadataURI: "0g://metadata/agent2",
   },
   {
-    ensName: "agent3.agentry.eth",
+    ensName: "agent3.agenttry.eth",
     wallet: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",   // hardhat account[2]
     modelType: "claude-opus-4-7",
     specialization: "high-quality",
@@ -44,6 +44,9 @@ async function mineHookSalt(
 ): Promise<string> {
   console.log("  Mining CREATE2 salt for ReputationHook address...");
   for (let i = 0n; ; i++) {
+    // Yield to the event loop every 500 iterations so the Hardhat TCP
+    // connection doesn't get reset during a long synchronous search.
+    if (i % 500n === 0n) await new Promise((r) => setTimeout(r, 0));
     const salt = ethers.zeroPadValue(ethers.toBeHex(i), 32);
     const addr = ethers.getCreate2Address(deployerAddr, salt, initCodeHash);
     if ((BigInt(addr) & HOOKS_MASK) === BEFORE_SWAP_FLAG) {
@@ -174,7 +177,42 @@ async function main() {
   await (await reputationTracker.setOperator(await rewardDistributor.getAddress())).wait();
   console.log("ReputationTracker: operator → RewardDistributor");
 
-  // ── 6. Register agents ────────────────────────────────────────────────────
+  // ── 6. ENS Registry + Resolver ───────────────────────────────────────────
+
+  console.log("\n--- Deploying ENS Registry and Resolver ---");
+
+  const ENSRegistry = await ethers.getContractFactory("ENSRegistry");
+  const ensRegistry = await ENSRegistry.deploy();
+  await ensRegistry.waitForDeployment();
+  const ensRegistryAddr = await ensRegistry.getAddress();
+  console.log("ENSRegistry:        ", ensRegistryAddr);
+
+  const AddrResolver = await ethers.getContractFactory("AddrResolver");
+  const addrResolver = await AddrResolver.deploy(ensRegistryAddr);
+  await addrResolver.waitForDeployment();
+  const addrResolverAddr = await addrResolver.getAddress();
+  console.log("AddrResolver:       ", addrResolverAddr);
+
+  // Register .eth TLD and agenttry.eth using EIP-137 namehash
+  const labelHash = (label: string) => ethers.keccak256(ethers.toUtf8Bytes(label));
+  const rootNode = ethers.ZeroHash;
+  const ethNode    = ethers.namehash("eth");
+  const agenttryNode = ethers.namehash("agenttry.eth");
+
+  await (await ensRegistry.setSubnodeOwner(rootNode,    labelHash("eth"),     deployer.address)).wait();
+  await (await ensRegistry.setSubnodeOwner(ethNode,     labelHash("agenttry"), deployer.address)).wait();
+
+  for (const agent of AGENTS) {
+    const label = agent.ensName.split(".")[0]; // "agent1" / "agent2" / "agent3"
+    const agentNode = ethers.namehash(agent.ensName);
+
+    await (await ensRegistry.setSubnodeOwner(agenttryNode, labelHash(label), deployer.address)).wait();
+    await (await ensRegistry.setResolver(agentNode, addrResolverAddr)).wait();
+    await (await addrResolver.setAddr(agentNode, agent.wallet)).wait();
+    console.log(`  ENS: ${agent.ensName} → ${agent.wallet}`);
+  }
+
+  // ── 7. Register agents in AgentRegistry ──────────────────────────────────
 
   console.log("\n--- Registering agents ---");
   for (const agent of AGENTS) {
@@ -189,7 +227,7 @@ async function main() {
     console.log(`  ${agent.ensName} → ${agent.wallet} (${agent.modelType})`);
   }
 
-  // ── 7. Summary ────────────────────────────────────────────────────────────
+  // ── 8. Summary ────────────────────────────────────────────────────────────
 
   console.log("\n=== Setup complete ===");
   console.log(".env için:");
@@ -199,6 +237,7 @@ async function main() {
   console.log(`REWARD_DISTRIBUTOR_ADDRESS=${await rewardDistributor.getAddress()}`);
   console.log(`POOL_MANAGER_ADDRESS=${poolManagerAddr}`);
   console.log(`REPUTATION_HOOK_ADDRESS=${hookAddr}`);
+  console.log(`ENS_REGISTRY_ADDRESS=${ensRegistryAddr}`);
 }
 
 main().catch((err) => {

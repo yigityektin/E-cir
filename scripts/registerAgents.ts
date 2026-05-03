@@ -6,21 +6,21 @@ dotenv.config();
 // Fake agents for demo — replace wallets with real ones before mainnet.
 const DEMO_AGENTS = [
   {
-    ensName: "agent1.agentry.eth",
+    ensName: "agent1.agenttry.eth",
     wallet: "0x32e126D1F3A8d321f0BEDba681F1274512a7907C",
     modelType: "claude-opus-4-7",
     specialization: "coding",
     metadataURI: "0g://metadata/agent1",
   },
   {
-    ensName: "agent2.agentry.eth",
+    ensName: "agent2.agenttry.eth",
     wallet: "0x2222222222222222222222222222222222222222",
     modelType: "claude-sonnet-4-6",
     specialization: "reasoning",
     metadataURI: "0g://metadata/agent2",
   },
   {
-    ensName: "agent3.agentry.eth",
+    ensName: "agent3.agenttry.eth",
     wallet: "0x3333333333333333333333333333333333333333",
     modelType: "claude-haiku-4-5",
     specialization: "general",

@@ -20,9 +20,9 @@ class MarketplacePipeline:
     # ENS names and wallets must match setup.ts / registerAgents.ts (hardhat accounts).
     # account[0] = deployer, account[1] = 0x70997970..., account[2] = 0x3C44Cd...
     agent_ens = {
-        "fast_model_agent_v1": "agent1.agentry.eth",
-        "balanced_model_agent_v1": "agent2.agentry.eth",
-        "high_quality_model_agent_v1": "agent3.agentry.eth",
+        "fast_model_agent_v1": "agent1.agenttry.eth",
+        "balanced_model_agent_v1": "agent2.agenttry.eth",
+        "high_quality_model_agent_v1": "agent3.agenttry.eth",
     }
 
     agent_wallets = {
